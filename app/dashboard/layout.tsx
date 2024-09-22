@@ -1,87 +1,88 @@
-import Link from "next/link";
 import { ReactNode } from "react";
-import Logo from "@/public/logo.svg";
-import Image from "next/image";
-import { DashboardItems } from "../components/dashboard/DashboardItems";
-import { CircleUser, DollarSign, Globe, Home } from "lucide-react";
-import { ThemeToggle } from "../components/dashboard/ThemeToggle";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
+import { DashboardNav } from "../components/DashboardNav";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { redirect } from "next/navigation";
+import prisma from "../lib/db";
+import { stripe } from "../lib/stripe";
+import { unstable_noStore as noStore } from "next/cache";
 
-export const navLinks = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
-    name: "Sites",
-    href: "/dashboard/sites",
-    icon: Globe,
-  },
-  {
-    name: "Pricing",
-    href: "/dashboard/pricing",
-    icon: DollarSign,
-  },
-];
+async function getData({
+  email,
+  id,
+  firstName,
+  lastName,
+  profileImage,
+}: {
+  email: string;
+  id: string;
+  firstName: string | undefined | null;
+  lastName: string | undefined | null;
+  profileImage: string | undefined | null;
+}) {
+  noStore();
+  const user = await prisma.user.findUnique({
+    where: {
+      id: id,
+    },
+    select: {
+      id: true,
+      stripeCustomerId: true,
+    },
+  });
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+  if (!user) {
+    const name = `${firstName ?? ""} ${lastName ?? ""}`;
+    await prisma.user.create({
+      data: {
+        id: id,
+        email:'abelaatkelet@gmail.com',
+        name: name,
+      },
+    });
+  }
+
+  if (!user?.stripeCustomerId) {
+    const data = await stripe.customers.create({
+      email: email,
+    });
+
+    await prisma.user.update({
+      where: {
+        id: id,
+      },
+      data: {
+        stripeCustomerId: data.id,
+      },
+    });
+  }
+}
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+  if (!user) {
+    return redirect("/");
+  }
+  await getData({
+    email: user.email as string,
+    firstName: user.given_name as string,
+    id: user.id as string,
+    lastName: user.family_name as string,
+    profileImage: user.picture,
+  });
+
   return (
-    <section className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Image src={Logo} alt="Logo" className="size-8" />
-
-              <h3 className="text-2xl">
-                Blog<span className="text-primary">Marshal</span>
-              </h3>
-            </Link>
-          </div>
-
-          <div className="flex-1">
-            <nav className="grid items-start px-2  font-medium lg:px-4">
-              <DashboardItems />
-            </nav>
-          </div>
-        </div>
+    <div className="flex flex-col space-y-6 mt-10">
+      <div className="container grid flex-1 gap-12 md:grid-cols-[200px_1fr]">
+        <aside className="hidden w-[200px] flex-col md:flex">
+          <DashboardNav />
+        </aside>
+        <main>{children}</main>
       </div>
-
-      <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-          <div className="ml-auto flex items-center gap-x-5">
-            <ThemeToggle />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full"
-                >
-                  <CircleUser className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <LogoutLink>Log out</LogoutLink>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-          {children}
-        </main>
-      </div>
-    </section>
+    </div>
   );
 }

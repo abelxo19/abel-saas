@@ -1,123 +1,138 @@
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { EmptyState } from "../components/dashboard/EmptyState";
-import prisma from "../utils/db";
-import { requireUser } from "../utils/requireUser";
-import SitesRoute from "./sites/page";
-import Image from "next/image";
-import Defaultimage from "@/public/default.png";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import prisma from "../lib/db";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { Edit, File, Trash } from "lucide-react";
+import { Card } from "@/components/ui/card";
+
+import { TrashDelete } from "../components/Submitbuttons";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 
 async function getData(userId: string) {
-  const [sites, articles] = await Promise.all([
-    prisma.site.findMany({
-      where: {
-        userId: userId,
+  noStore();
+  const data = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      Notes: {
+        select: {
+          title: true,
+          id: true,
+          description: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 3,
-    }),
-    prisma.post.findMany({
-      where: {
-        userId: userId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 3,
-    }),
-  ]);
 
-  return { sites, articles };
+      Subscription: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+
+  return data;
 }
 
-export default async function DashboardIndexPage() {
-  const user = await requireUser();
-  const { articles, sites } = await getData(user.id);
+export default async function DashboardPage() {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+  const data = await getData(user?.id as string);
+
+  async function deleteNote(formData: FormData) {
+    "use server";
+
+    const noteId = formData.get("noteId") as string;
+
+    await prisma.note.delete({
+      where: {
+        id: noteId,
+      },
+    });
+
+    revalidatePath("/dasboard");
+  }
   return (
-    <div>
-      <h1 className="text-2xl font-semibold mb-5">Your Sites</h1>
-      {sites.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
-          {sites.map((item) => (
-            <Card key={item.id}>
-              <Image
-                src={item.imageUrl ?? Defaultimage}
-                alt={item.name}
-                className="rounded-t-lg object-cover w-full h-[200px]"
-                width={400}
-                height={200}
-              />
-              <CardHeader>
-                <CardTitle className="truncate">{item.name}</CardTitle>
-                <CardDescription className="line-clamp-3">
-                  {item.description}
-                </CardDescription>
-              </CardHeader>
+    <div className="grid items-start gap-y-8">
+      <div className="flex items-center justify-between px-2">
+        <div className="grid gap-1">
+          <h1 className="text-3xl md:text-4xl">Your Notes</h1>
+          <p className="text-lg text-muted-foreground">
+            Here you can see and create new notes
+          </p>
+        </div>
 
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href={`/dashboard/sites/${item.id}`}>
-                    View Articles
-                  </Link>
-                </Button>
-              </CardFooter>
+        {data?.Subscription?.status === "active" ? (
+          <Button asChild>
+            <Link href="/dashboard/new">Create a new Note</Link>
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href="/dashboard/billing">Create a new Note</Link>
+          </Button>
+        )}
+      </div>
+
+      {data?.Notes.length == 0 ? (
+        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed p-8 text-center animate-in fade-in-50">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+            <File className="w-10 h-10 text-primary" />
+          </div>
+
+          <h2 className="mt-6 text-xl font-semibold">
+            You dont have any notes created
+          </h2>
+          <p className="mb-8 mt-2 text-center text-sm leading-6 text-muted-foreground max-w-sm mx-auto">
+            You currently dont have any notes. please create some so that you
+            can see them right here.
+          </p>
+
+          {data?.Subscription?.status === "active" ? (
+            <Button asChild>
+              <Link href="/dashboard/new">Create a new Note</Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/dashboard/billing">Create a new Note</Link>
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-y-4">
+          {data?.Notes.map((item) => (
+            <Card
+              key={item.id}
+              className="flex items-center justify-between p-4"
+            >
+              <div>
+                <h2 className="font-semibold text-xl text-primary">
+                  {item.title}
+                </h2>
+                <p>
+                  {new Intl.DateTimeFormat("en-US", {
+                    dateStyle: "full",
+                  }).format(new Date(item.createdAt))}
+                </p>
+              </div>
+
+              <div className="flex gap-x-4">
+                <Link href={`/dashboard/new/${item.id}`}>
+                  <Button variant="outline" size="icon">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <form action={deleteNote}>
+                  <input type="hidden" name="noteId" value={item.id} />
+                  <TrashDelete />
+                </form>
+              </div>
             </Card>
           ))}
         </div>
-      ) : (
-        <EmptyState
-          title="You dont have any sites created"
-          description="You currently dont have any Sites. Please create some so that you can see them right here."
-          href="/dashboard/sites/new"
-          buttonText="Create Site"
-        />
-      )}
-
-      <h1 className="text-2xl mt-10 font-semibold mb-5">Recent Articles</h1>
-      {articles.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
-          {articles.map((item) => (
-            <Card key={item.id}>
-              <Image
-                src={item.image ?? Defaultimage}
-                alt={item.title}
-                className="rounded-t-lg object-cover w-full h-[200px]"
-                width={400}
-                height={200}
-              />
-              <CardHeader>
-                <CardTitle className="truncate">{item.title}</CardTitle>
-                <CardDescription className="line-clamp-3">
-                  {item.smallDescription}
-                </CardDescription>
-              </CardHeader>
-
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href={`/dashboard/sites/${item.siteId}/${item.id}`}>
-                    Edit Article
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          title="You dont have any articles created"
-          description="Your currently dont have any articles created. Please create some so that you can see them right here"
-          buttonText="Create Article"
-          href="/dashboard/sites"
-        />
       )}
     </div>
   );

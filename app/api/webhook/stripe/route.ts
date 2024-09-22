@@ -1,7 +1,7 @@
-import prisma from "@/app/utils/db";
-import { stripe } from "@/app/utils/stripe";
+import { stripe } from "@/app/lib/stripe";
 import { headers } from "next/headers";
 import Stripe from "stripe";
+import prisma from "@/app/lib/db";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
   } catch (error: unknown) {
-    return new Response("Webhook error", { status: 400 });
+    return new Response("webhook error", { status: 400 });
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
@@ -26,12 +26,11 @@ export async function POST(req: Request) {
     const subscription = await stripe.subscriptions.retrieve(
       session.subscription as string
     );
-
-    const customerId = session.customer as string;
+    const customerId = String(session.customer);
 
     const user = await prisma.user.findUnique({
       where: {
-        customerId: customerId,
+        stripeCustomerId: customerId,
       },
     });
 
@@ -45,7 +44,7 @@ export async function POST(req: Request) {
         currentPeriodEnd: subscription.current_period_end,
         status: subscription.status,
         planId: subscription.items.data[0].plan.id,
-        interval: String(subscription.items.data[0].plan.interval),
+        invterval: String(subscription.items.data[0].plan.interval),
       },
     });
   }
