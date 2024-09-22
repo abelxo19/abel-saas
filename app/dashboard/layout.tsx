@@ -34,7 +34,7 @@ async function getData({
     await prisma.user.create({
       data: {
         id: id,
-        email:'abelaatkelet@gmail.com',
+        email:email,
         name: name,
       },
     });
