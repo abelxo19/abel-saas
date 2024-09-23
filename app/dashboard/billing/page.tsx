@@ -17,11 +17,9 @@ import {
 import { unstable_noStore as noStore } from "next/cache";
 
 const featureItems = [
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
+  { name: "Live Update and Sync" },
+  { name: "Cloud-Based Storage" },
+  { name: "Cross-Device Accessibility" },
 ];
 
 async function getData(userId: string) {
