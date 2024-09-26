@@ -31,7 +31,7 @@ export default async function Home() {
 
           <div className="flex justify-center max-w-sm mx-auto mt-10">
             <RegisterLink>
-              <Button size="lg" className="w-full">
+              <Button size="lg" className="w-3/4 md:w-full">
                 Sign Up for free
               </Button>
             </RegisterLink>
