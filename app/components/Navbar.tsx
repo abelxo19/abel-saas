@@ -13,7 +13,7 @@ export async function Navbar() {
   const user = await getUser();
 
   return (
-    <nav className="border-b bg-background h-[10vh] flex  items-center mx-16">
+    <nav className="border-b bg-background h-[10vh] flex  items-center lg:mx-16">
       <div className="container flex items-center justify-between">
         <Link href="/">
           <h1 className="font-bold text-3xl">
