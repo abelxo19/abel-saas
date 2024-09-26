@@ -13,7 +13,7 @@ export async function Navbar() {
   const user = await getUser();
 
   return (
-    <nav className="border-b bg-background h-[10vh] flex items-center ml-5">
+    <nav className="border-b bg-background h-[10vh] flex  items-center mx-16">
       <div className="container flex items-center justify-between">
         <Link href="/">
           <h1 className="font-bold text-3xl">
@@ -37,7 +37,7 @@ export async function Navbar() {
               </LoginLink>
 
               <RegisterLink>
-                <Button variant="secondary" className="mr-5">Sign Up</Button>
+                <Button variant="secondary">Sign Up</Button>
               </RegisterLink>
             </div>
           )}
