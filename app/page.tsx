@@ -24,8 +24,8 @@ export default async function Home() {
               Create Notes with ease
             </h1>
             <p className="max-w-xl mx-auto mt-8 text-base lg:text-xl text-secondary-foreground">
-              Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
-              nonumy eirmod tempor invidunt ut labore et d
+            Effortlessly capture, organize, and access your notes anywhere, anytime with Note Cloud. Secure,
+           for individuals and teams.
             </p>
           </div>
 
