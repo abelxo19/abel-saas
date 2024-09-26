@@ -37,7 +37,7 @@ export async function Navbar() {
               </LoginLink>
 
               <RegisterLink>
-                <Button variant="secondary">Sign Up</Button>
+                <Button variant="secondary" className="mr-5">Sign Up</Button>
               </RegisterLink>
             </div>
           )}
