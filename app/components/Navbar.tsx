@@ -16,12 +16,12 @@ export async function Navbar() {
     <nav className="border-b bg-background h-[10vh] flex  items-center lg:mx-16 mx-5">
       <div className="container flex items-center justify-between">
         <Link href="/">
-          <h1 className="font-bold text-3xl">
+          <h1 className="font-bold text-xl lg:text-3xl mr-2">
             Note<span className="text-primary">Cloud</span>
           </h1>
         </Link>
 
-        <div className="flex items-center gap-x-5">
+        <div className="flex items-center gap-x-3">
           <ThemeToggle />
 
           {(await isAuthenticated()) ? (
@@ -31,7 +31,7 @@ export async function Navbar() {
               name={user?.given_name as string}
             />
           ) : (
-            <div className="flex items-center gap-x-5">
+            <div className="flex items-center gap-x-3">
               <LoginLink>
                 <Button>Sign In</Button>
               </LoginLink>
